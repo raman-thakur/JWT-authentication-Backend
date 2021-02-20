@@ -3,16 +3,22 @@ const app = express();
 const mongoose=require('mongoose');
 const User=require('./models/user');
 let bodyParser=require('body-parser');
+app.use(express.urlencoded({ extended: true }));
 let jasonParser=bodyParser.json();
 const bcrypt = require ('bcrypt');
-const crypto=require('crypto');
-var key="password";
-var algo='aes256';
-const saltRounds = 10;
 const jwt=require('jsonwebtoken');
-const jwtKey="jwt"
+const saltRounds=10;
+let vartoken;
+
+const dotenv=require('dotenv');
+dotenv.config({path: './config.env'});
+
+
+app.set('view engine', 'ejs');
+app.set('views', 'views');
+
 //connecting to atlas/DB
-mongoose.connect('mongodb+srv://raman111:Raman@111@cluster0.2errd.mongodb.net/authentication?retryWrites=true&w=majority',
+mongoose.connect('mongodb+srv://'+process.env.dbUser+':'+process.env.dbPassword+'@cluster0.2errd.mongodb.net/authentication?retryWrites=true&w=majority',
 {
   useNewUrlParser:true,
   useUnifiedTopology:true
@@ -22,11 +28,16 @@ mongoose.connect('mongodb+srv://raman111:Raman@111@cluster0.2errd.mongodb.net/au
 
 // Root route of express app 
 app.get("/", (req, res) => { 
-  res.send("Hell0000000000000o Geeks"); 
+ 
+  res.render('allcansee');
 }); 
 
-//post requests
-app.post('/resister',jasonParser, function(req,res){
+//RESISTER
+app.get('/register', (req,res)=>{
+  res.render('resister');
+})
+
+app.post('/register', jasonParser, function(req,res){
 
   let data= new User({
     _id:mongoose.Types.ObjectId(),
@@ -36,22 +47,34 @@ app.post('/resister',jasonParser, function(req,res){
     password:req.body.password,
   })
 
+  User.findOne({email:req.body.email}).then((data)=>{
+    if(data)
+      res.end('this email already exist');
+
+  })
+
   bcrypt.hash(req.body.password, saltRounds, function(err, hash) {
     if(err) throw err;
 
     data.password=hash;
     data.save().then((result)=>{
-      jwt.sign({result},jwtKey,{expiresIn: '300000s'},(err,token)=>{
+      jwt.sign({result},process.env.jwtKey,{expiresIn: '30000d'},(err,token)=>{
+
         res.json({token})
+        vartoken=token;
       })
     });
   });
 
+  //console.warn(req.body);
  
  //res.end("hellowwwwww my boyssssss");
 })
   
 
+app.get('/login', (req,res)=>{
+  res.render('login');
+})
 
 app.post('/login',jasonParser,function(req,res){
   User.findOne({email:req.body.email}).then((data)=>{
@@ -60,8 +83,10 @@ app.post('/login',jasonParser,function(req,res){
     bcrypt.compare(password2, data.password, function(err, result) {
     if (result) {
       console.warn("matches bruhhh")
-      jwt.sign({data},jwtKey,{expiresIn: '300000s'},(err,token)=>{
+      jwt.sign({data},process.env.jwtKey,{expiresIn: '30000d'},(err,token)=>{
         res.json({token})
+        vartoken=token;
+        console.warn(vartoken);
       })
     }
     else {
@@ -73,6 +98,11 @@ app.post('/login',jasonParser,function(req,res){
   //res.end("done");
 })
 
+app.get('/secretpage',verifyToken, (req,res)=>{
+  res.render('secretPage')
+})
+
+
 app.get('/users',verifyToken,function(req,res){
   User.find().then((result)=>{
     res.json(result)
@@ -80,27 +110,20 @@ app.get('/users',verifyToken,function(req,res){
 })
 
 function verifyToken(req,res,next){
-  const bearerHeader=req.headers['authorization'];
- 
   
-  if(typeof bearerHeader !=='undefined')
-  {
-    const bearer=bearerHeader.split(' ')
-    console.warn(bearer[1]);
-    req.token=bearer[1]
-    jwt.verify(req.token,jwtKey,(err,authData)=>{
+    //req.token=bearer[1]
+    console.warn(req.headers.authorization);
+    jwt.verify(vartoken,process.env.jwtKey,(err,authData)=>{
       if(err)
-      res.json({result:err})
+      res.redirect('/');
       else
       next();
     })
 
   }
-  else
-  {
-    res.send({"result":"token not given"})
-  }
-}
+
+
+
 
 // Server setup 
-app.listen(3000); 
+app.listen(process.env.PORT); 
