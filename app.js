@@ -68,6 +68,7 @@ app.post("/register", jasonParser, function (req, res) {
         process.env.jwtKey,
         { expiresIn: "30000d" },
         (err, token) => {
+          //passing token into cookie
           res.cookie("jwt", token);
           vartoken = token;
           console.warn(token);
@@ -77,9 +78,6 @@ app.post("/register", jasonParser, function (req, res) {
     });
   });
 
-  //console.warn(req.body);
-
-  //res.end("hellowwwwww my boyssssss");
 });
 
 app.get("/login", (req, res) => {
@@ -99,6 +97,7 @@ app.post("/login", jasonParser, function (req, res) {
           { expiresIn: "30000d" },
           (err, token) => {
             vartoken = token;
+            //passing token into cookie
             res.cookie("jwt", token);
             console.warn(token);
             res.end("done");
@@ -125,9 +124,8 @@ app.get("/users", verifyToken, function (req, res) {
 });
 
 function verifyToken(req, res, next) {
-  //req.token=bearer[1]
-  //console.warn(req.headers.authorization);
-  console.warn(req.cookies.jwt);
+  
+  //veryfying token stored in cookie
   jwt.verify(req.cookies.jwt, process.env.jwtKey, (err, authData) => {
     if (err) res.redirect("/");
     else next();
