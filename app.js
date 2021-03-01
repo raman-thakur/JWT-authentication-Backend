@@ -68,7 +68,6 @@ app.post("/register", jasonParser, function (req, res) {
         process.env.jwtKey,
         { expiresIn: "30000d" },
         (err, token) => {
-          //passing token into cookie
           res.cookie("jwt", token);
           vartoken = token;
           console.warn(token);
@@ -77,6 +76,7 @@ app.post("/register", jasonParser, function (req, res) {
       );
     });
   });
+
 
 });
 
@@ -97,10 +97,7 @@ app.post("/login", jasonParser, function (req, res) {
           { expiresIn: "30000d" },
           (err, token) => {
             vartoken = token;
-            //passing token into cookie
             res.cookie("jwt", token);
-            console.warn(token);
-            res.end("done");
           }
         );
       } else {
@@ -109,11 +106,10 @@ app.post("/login", jasonParser, function (req, res) {
     });
   });
 
-  //res.end("done");
+  res.redirect("/secretpage");
 });
 
 app.get("/secretpage", verifyToken, (req, res) => {
-  //console.warn(req.cookie);
   res.render("secretPage");
 });
 
@@ -124,8 +120,7 @@ app.get("/users", verifyToken, function (req, res) {
 });
 
 function verifyToken(req, res, next) {
-  
-  //veryfying token stored in cookie
+  console.warn(req.cookies.jwt);
   jwt.verify(req.cookies.jwt, process.env.jwtKey, (err, authData) => {
     if (err) res.redirect("/");
     else next();
